@@ -1,0 +1,22 @@
+{
+  "name": "audit_log_rabbit",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Denis Vagner",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./src/index.js",
+    "test": "./node_modules/.bin/mocha --reporter spec"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "@elastic/elasticsearch": "^7.4.0",
+    "amqplib": "^0.5.5",
+    "mocha": "^6.2.1"
+  },
+  "devDependencies": {
+    "coveralls": "^3.0.6",
+    "standard": "^14.3.1"
+  }
+}
