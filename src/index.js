@@ -1,55 +1,48 @@
 #!/usr/bin/env node
 
-global.__base = __dirname;
+global.__base = __dirname
 const rabbitmq = require('./config/rabbitmq')
-const elastic = require('./controllers/elasticSearchController')
-const amqp = require('amqplib/callback_api');
+const apiClient = require('./controllers/apiClient')
+const amqp = require('amqplib/callback_api')
 
+amqp.connect(rabbitmq.options.server, function (error0, connection) {
+  if (error0) {
+    throw error0
+  }
+  connection.createChannel(function (error1, channel) {
+    if (error1) {
+      throw error1
+    }
 
-elastic.elasticClient.ping((err => { //Check ElasticSearch connection
-	if (err) {
-		throw err
-	}
+    const queue = rabbitmq.options.queue
 
-	elastic.check_indices().then((result) => {
-		if (result.statusCode != 200) {
-			elastic.create_index().then(() => {
-				elastic.set_mappings(elastic.mapping()).catch(console.log)
-			})
-		}
-	})
+    channel.assertQueue(queue, {
+      durable: false
+    })
 
-	amqp.connect(rabbitmq.options.server, function (error0, connection) {
-		if (error0) {
-			throw error0;
-		}
-		connection.createChannel(function (error1, channel) {
-			if (error1) {
-				throw error1;
-			}
+    console.log(' [*] Waiting for messages in %s. To exit press CTRL+C', queue)
 
-			const queue = rabbitmq.options.queue
+    channel.prefetch(1)
+    channel.consume(queue, function (msg) {
 
-			channel.assertQueue(queue, {
-				durable: false
-			});
+      apiClient.save(JSON.parse(msg.content.toString()))
+        .then((response) => {
+          if (response.status === 204) {
+            console.log('Saved')
+            channel.ack(msg)
+          } else {
+            console.log(response.status)
+            console.log(response.statusText)
+          }
+        })
+        .catch(
+          (error) => {
+            console.log(error)
+          }
+        )
 
-			console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
-
-			channel.prefetch(1)
-			channel.consume(queue, function (msg) {
-
-				elastic.save(JSON.parse(msg.content.toString()))
-					.then(() => {
-						console.log('Saved')
-						channel.ack(msg)
-					})
-					.catch(elastic.save_error)
-
-			}, {
-				noAck: false
-			});
-		});
-	});
-
-}))
+    }, {
+      noAck: false
+    })
+  })
+})
