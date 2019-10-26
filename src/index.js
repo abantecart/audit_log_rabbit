@@ -27,7 +27,7 @@ amqp.connect(rabbitmq.options.server, function (error0, connection) {
 
       apiClient.save(JSON.parse(msg.content.toString()))
         .then((response) => {
-          if (response.status === 204) {
+          if (response.status === 200) {
             console.log('Saved')
             channel.ack(msg)
           } else {
